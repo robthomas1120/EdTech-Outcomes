@@ -22,6 +22,14 @@ def allowed_file(filename):
 def index():
     return render_template('index.html')
 
+@app.route('/mapping')
+def mapping():
+    return render_template('mapping.html')
+
+@app.route('/calculation')
+def calculation():
+    return render_template('calculation.html')
+
 @app.route('/join')
 def join():
     return render_template('join.html')
