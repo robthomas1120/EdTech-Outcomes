@@ -3,10 +3,13 @@ import pandas as pd
 import os
 from werkzeug.utils import secure_filename
 from preprocessing import process_file, read_file, validate_format, fix_program_outcome_format
+from calculation import calculation_bp  # Import the blueprint
 import pdfkit
 from typing import List
 
-app = Flask(__name__)
+app = Flask(__name__)  # Create Flask app instance first
+app.register_blueprint(calculation_bp)  # Then register the blueprint
+
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
