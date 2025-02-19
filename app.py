@@ -4,11 +4,13 @@ import os
 from werkzeug.utils import secure_filename
 from preprocessing import process_file, read_file, validate_format, fix_program_outcome_format
 from calculation import calculation_bp  # Import the blueprint
+from mapping import mapping_bp  # Import the mapping blueprint
 import pdfkit
 from typing import List
 
 app = Flask(__name__)  # Create Flask app instance first
 app.register_blueprint(calculation_bp)  # Then register the blueprint
+app.register_blueprint(mapping_bp, url_prefix='/mapping')  # Register the mapping blueprint with prefix
 
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -25,9 +27,9 @@ def allowed_file(filename):
 def index():
     return render_template('index.html')
 
-@app.route('/mapping')
-def mapping():
-    return render_template('mapping.html')
+@app.route('/preprocessing')
+def preprocessing():
+    return render_template('preprocessing.html')
 
 @app.route('/calculation')
 def calculation():

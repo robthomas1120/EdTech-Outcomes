@@ -142,47 +142,40 @@ def process_file(filepath, format_pattern=None):
     try:
         df = read_file(filepath)
         
-        # Store all columns but only display Program and Course Outcomes
+        # Define columns for display in preview
         display_columns = ['Program Outcomes', 'Course Outcomes']
+        
+        # Store the full dataframe for download
+        full_df = df.copy()
         
         # Validate and fix Program Outcomes format if pattern is provided
         format_errors = []
         error_rows = []  # Track rows with format errors
         if format_pattern:
-            fixed_outcomes = []
-            has_errors = []
-            for idx, outcome in enumerate(df['Program Outcomes'], 1):
-                fixed, errors, has_error = validate_and_fix_format(outcome, format_pattern)
-                fixed_outcomes.append(fixed)
-                if errors:
-                    format_errors.extend([f"Row {idx}: {error}" for error in errors])
-                if has_error:
-                    error_rows.append(idx)
-                has_errors.append(has_error)
-            
-            # Create a copy of the dataframe with fixed values
-            df_fixed = df.copy()
-            df_fixed['Program Outcomes'] = fixed_outcomes
-            preview_data = df_fixed[display_columns].to_dict('records')
-        else:
-            preview_data = df[display_columns].to_dict('records')
-            has_errors = [False] * len(df)
-            error_rows = []
+            # Apply validation and fixing to both display and full dataframes
+            for idx, row in df.iterrows():
+                if 'Program Outcomes' in df.columns:
+                    fixed_text, errors, has_error = validate_and_fix_format(
+                        row['Program Outcomes'], format_pattern
+                    )
+                    df.at[idx, 'Program Outcomes'] = fixed_text
+                    full_df.at[idx, 'Program Outcomes'] = fixed_text
+                    format_errors.extend([f"Row {idx + 1}: {err}" for err in errors])
+                    if has_error:
+                        error_rows.append(idx)
+
+        # Create preview data with only display columns
+        preview_df = df[display_columns].copy()
         
-        # Get unique values for each column
-        unique_values = {
-            'Program Outcomes': sorted(df['Program Outcomes'].dropna().unique().tolist()),
-            'Course Outcomes': sorted(df['Course Outcomes'].dropna().unique().tolist())
-        }
+        # Get unique values for display columns
+        unique_values = {col: sorted(df[col].dropna().unique().tolist()) 
+                        for col in display_columns if col in df.columns}
         
         return {
-            'all_columns': df.columns.tolist(),
-            'display_columns': display_columns,
-            'preview_rows': preview_data,
-            'total_rows': len(df),
+            'preview_data': preview_df.to_dict('records'),
+            'full_data': full_df.to_dict('records'),  # Include full data for download
             'unique_values': unique_values,
             'format_errors': format_errors,
-            'has_errors': has_errors,
             'error_rows': error_rows
         }
     except Exception as e:

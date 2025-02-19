@@ -3,9 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Mapping Page</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='mapping.css') }}">
 </head>
 <body>
-    hello im mapping
+    <div class="nav-buttons">
+        <a href="{{ url_for('preprocessing') }}"><button class="nav-button">Preprocessing</button></a>
+        <a href="{{ url_for('join') }}"><button class="nav-button">Join</button></a>
+        <a href="{{ url_for('mapping.mapping_page') }}"><button class="nav-button">Mapping</button></a>
+        <a href="{{ url_for('calculation') }}"><button class="nav-button">Calculation</button></a>
+    </div>
+
+    <div class="container">
+        <h2>Mapping Page</h2>
+        
+        <!-- Step 1: Upload Mapping Template -->
+        <div id="step1">
+            <h3>Step 1: Upload Mapping Template</h3>
+            <form id="upload-form">
+                <input type="file" id="file-input" accept=".csv,.xlsx">
+            </form>
+        </div>
+
+        <!-- Step 2: Radio Options -->
+        <div id="radio-options" style="display: none;">
+            <h3>Step 2: Select Mapping Type</h3>
+            <!-- Radio buttons will be dynamically added here -->
+        </div>
+
+        <!-- Step 3: Upload Outcomes Results -->
+        <div id="step3" style="display: none;">
+            <h3>Step 3: Upload Outcomes Results</h3>
+            <input type="file" id="outcomes-file-input" accept=".csv,.xlsx">
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" style="display: none;">
+            Loading...
+        </div>
+
+        <!-- Results Container -->
+        <div id="mapping-results"></div>
+        
+        <!-- Download Button -->
+        <button id="download-button" style="display: none;">Download Mapped Results</button>
+    </div>
+
+    <script src="{{ url_for('static', filename='mapping.js') }}"></script>
 </body>
 </html>

@@ -232,9 +232,20 @@
             gap: 10px;
             margin-bottom: 20px;
         }
+        .nav-button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
+    <div class="nav-buttons">
+        <a href="{{ url_for('preprocessing') }}"><button class="nav-button">Preprocessing</button></a>
+        <a href="{{ url_for('join') }}"><button class="nav-button">Join</button></a>
+        <a href="{{ url_for('mapping.mapping_page') }}"><button class="nav-button">Mapping</button></a>
+        <a href="{{ url_for('calculation') }}"><button class="nav-button">Calculation</button></a>
+    </div>
     <div class="container mt-5">
         <div class="nav-buttons">
             <button class="nav-back" onclick="window.location.href='/'">Back to Home</button>
