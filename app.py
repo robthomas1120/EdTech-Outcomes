@@ -29,7 +29,7 @@ def index():
 
 @app.route('/preprocessing')
 def preprocessing():
-    return render_template('preprocessing.html')
+    return render_template('index.html')
 
 @app.route('/calculation')
 def calculation():

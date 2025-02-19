@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Join CSV Files</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='join.css') }}" rel="stylesheet">
@@ -8,88 +10,162 @@
 <body class="bg-gray-100 p-8">
     <div class="max-w-6xl mx-auto">
         <!-- Navigation Bar -->
-        <div class="nav-bar">
-            <a href="{{ url_for('index') }}" class="nav-button preprocessing">
-                Preprocessing
-            </a>
-            <a href="{{ url_for('mapping') }}" class="nav-button mapping">
-                Mapping
-            </a>
-            <a href="{{ url_for('calculation') }}" class="nav-button calculation">
-                Calculation
-            </a>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Preprocessing</a>
+            <a href="{{ url_for('calculation') }}" class="btn btn-success">Calculation</a>
+            <a href="{{ url_for('join') }}" class="btn btn-info">Join Files</a>
+            <a href="{{ url_for('mapping.mapping_page') }}" class="btn btn-warning">Mapping</a>
         </div>
 
         <!-- Main Content -->
         <div class="bg-white p-6 rounded-lg shadow-md">
-            <h1 class="text-2xl font-bold mb-6">Join CSV Files</h1>
+            <h1 class="text-2xl font-bold mb-4">Join CSV Files</h1>
+            <p class="text-gray-600 mb-6">Upload multiple CSV files to combine them into one file.</p>
             
+            <!-- Upload Form -->
             <form id="uploadForm" action="/process-join" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <div id="fileInputs" class="space-y-4">
                     <div class="file-input-group flex items-center space-x-4">
-                        <input type="file" name="files[]" accept=".csv" class="p-2 border rounded" required>
-                        <button type="button" class="remove-file text-red-500 hover:text-red-700" style="display: none;">
+                        <input type="file" name="files[]" accept=".csv" class="p-2 border rounded w-full" required>
+                        <button type="button" class="remove-file text-red-500 hover:text-red-700 hidden">
                             Remove
                         </button>
                     </div>
                 </div>
                 
                 <div class="flex space-x-4 mt-4">
-                    <button type="button" id="addFile" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                    <button type="button" id="addFile" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
                         + Add Another File
                     </button>
-                    
-                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors">
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
                         Join Files
                     </button>
                 </div>
             </form>
-            
-            <div id="preview" class="preview-section hidden">
-                <div class="preview-header">
-                    <h2 class="preview-title">Preview of Combined Data</h2>
-                </div>
+
+            <!-- Preview Section -->
+            <div id="preview" class="mt-8 hidden">
+                <h2 class="text-xl font-semibold mb-4">Preview of Combined Data</h2>
                 
-                <div id="previewStats" class="preview-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Total Rows</span>
-                        <span id="totalRows" class="stat-value">0</span>
+                <!-- Preview Stats -->
+                <div id="previewStats" class="flex space-x-6 mb-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold">Total Rows:</span>
+                        <span id="totalRows" class="text-gray-700">0</span>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Total Columns</span>
-                        <span id="totalColumns" class="stat-value">0</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold">Total Columns:</span>
+                        <span id="totalColumns" class="text-gray-700">0</span>
                     </div>
                 </div>
 
-                <div class="preview-table-wrapper">
-                    <table id="previewTable" class="preview-table">
+                <!-- Preview Table -->
+                <div class="overflow-x-auto bg-gray-50 p-4 rounded border">
+                    <table id="previewTable" class="table-auto w-full border-collapse border border-gray-300">
                         <thead>
-                            <tr id="tableHeaders"></tr>
+                            <tr id="tableHeaders" class="bg-gray-200">
+                                <!-- Dynamically Generated Headers -->
+                            </tr>
                         </thead>
-                        <tbody id="tableBody"></tbody>
+                        <tbody id="tableBody">
+                            <!-- Dynamically Generated Data -->
+                        </tbody>
                     </table>
                 </div>
-                
-                <div class="action-buttons">
-                    <button id="downloadCsvBtn" class="btn btn-download">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                        </svg>
+
+                <!-- Download Buttons -->
+                <div class="mt-6 space-x-4">
+                    <a id="downloadCsvBtn" href="#" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition hidden">
                         Download CSV
-                    </button>
-                    
-                    <button id="downloadPdfBtn" class="btn btn-pdf">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
+                    </a>
+                    <a id="downloadPdfBtn" href="#" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition hidden">
                         Download PDF
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='join.js') }}"></script>
+    <script>
+        const fileInputs = document.getElementById('fileInputs');
+        const addFileButton = document.getElementById('addFile');
+        const preview = document.getElementById('preview');
+        const previewTable = document.getElementById('previewTable');
+        const previewStats = document.getElementById('previewStats');
+        const totalRows = document.getElementById('totalRows');
+        const totalColumns = document.getElementById('totalColumns');
+        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+        // Add new file input
+        addFileButton.addEventListener('click', () => {
+            const fileInputGroup = document.createElement('div');
+            fileInputGroup.classList.add('file-input-group', 'flex', 'items-center', 'space-x-4');
+            fileInputGroup.innerHTML = `
+                <input type="file" name="files[]" accept=".csv" class="p-2 border rounded w-full" required>
+                <button type="button" class="remove-file text-red-500 hover:text-red-700">Remove</button>
+            `;
+            fileInputs.appendChild(fileInputGroup);
+
+            const removeButton = fileInputGroup.querySelector('.remove-file');
+            removeButton.style.display = 'inline';
+            removeButton.addEventListener('click', () => {
+                fileInputGroup.remove();
+            });
+        });
+
+        // Handle form submission and display preview
+        const form = document.getElementById('uploadForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // Update preview stats
+                preview.style.display = 'block';
+                totalRows.textContent = result.total_rows;
+                totalColumns.textContent = result.columns.length;
+
+                // Populate table headers
+                const headersRow = document.getElementById('tableHeaders');
+                headersRow.innerHTML = '';
+                result.columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.textContent = col;
+                    th.classList.add('border', 'px-4', 'py-2');
+                    headersRow.appendChild(th);
+                });
+
+                // Populate table body
+                const tableBody = document.getElementById('tableBody');
+                tableBody.innerHTML = '';
+                result.preview.forEach(row => {
+                    const tr = document.createElement('tr');
+                    Object.values(row).forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        td.classList.add('border', 'px-4', 'py-2');
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                });
+
+                // Show download buttons
+                downloadCsvBtn.href = `/uploads/${result.filename}`;
+                downloadCsvBtn.classList.remove('hidden');
+                downloadPdfBtn.href = `/uploads/${result.pdf_filename}`;
+                downloadPdfBtn.classList.remove('hidden');
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        });
+    </script>
 </body>
 </html>
