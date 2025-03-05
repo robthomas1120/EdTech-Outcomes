@@ -18,7 +18,7 @@
                 <a href="{{ url_for('join') }}" class="nav-tab join">
                     <i class="fas fa-link me-2"></i>Join Files
                 </a>
-                <a href="{{ url_for('mapping.mapping_page') }}" class="nav-tab mapping">
+                <a href="{{ url_for('mapping.mapping_page') }}" class="nav-tab mapping active">
                     <i class="fas fa-map me-2"></i>Mapping
                 </a>
                 <a href="{{ url_for('calculation') }}" class="nav-tab calculation">
@@ -83,12 +83,12 @@
             </div>
 
             <!-- Results Container -->
-            <div id="mapping-results" class="results-container mb-4"></div>
+            <div id="mapping-results" class="results-container" style="display: none;"></div>
             
             <!-- Download Button -->
             <div class="nav-buttons">
                 <div></div> <!-- Empty div for flex spacing -->
-                <button id="download-button" class="btn btn-success hidden">
+                <button id="download-button" class="btn btn-success" style="display: none;">
                     <i class="fas fa-download me-2"></i>Download Mapped Results
                 </button>
             </div>
