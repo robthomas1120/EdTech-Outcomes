@@ -150,64 +150,6 @@ def fix_format():
 
     return jsonify({'success': False, 'error': 'Invalid file type'})
 
-def process_join_files(files: List, upload_folder: str) -> dict:
-    """
-    Process multiple CSV files and join them together.
-    
-    Args:
-        files: List of file objects from the request
-        upload_folder: Path to the upload folder
-    
-    Returns:
-        dict: Response containing success status, preview data, and filename
-    """
-    try:
-        # Read and combine all CSV files
-        dataframes = []
-        for file in files:
-            if file.filename.endswith('.csv'):
-                # Save the file temporarily
-                temp_path = os.path.join(upload_folder, file.filename)
-                file.save(temp_path)
-                
-                # Read the CSV
-                df = pd.read_csv(temp_path)
-                dataframes.append(df)
-                
-                # Clean up the temporary file
-                os.remove(temp_path)
-        
-        if not dataframes:
-            return {
-                'success': False,
-                'error': 'No valid CSV files provided'
-            }
-        
-        # Combine all dataframes
-        combined_df = pd.concat(dataframes, ignore_index=True)
-        
-        # Generate preview
-        preview_rows = combined_df.head(5).to_string()
-        
-        # Save the combined file
-        output_filename = 'combined_output.csv'
-        output_path = os.path.join(upload_folder, output_filename)
-        combined_df.to_csv(output_path, index=False)
-        
-        return {
-            'success': True,
-            'filename': output_filename,
-            'total_rows': len(combined_df),
-            'columns': combined_df.columns.tolist(),
-            'preview': preview_rows
-        }
-        
-    except Exception as e:
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
 def save_as_pdf(filepath: str) -> str:
     """
     Convert the CSV file to PDF format.
@@ -222,55 +164,308 @@ def save_as_pdf(filepath: str) -> str:
         df = pd.read_csv(filepath)
         pdf_path = filepath.rsplit('.', 1)[0] + '.pdf'
         
-        # Create a styled HTML table
-        styled_df = df.style.set_properties(**{
-            'border': '1px solid black',
-            'padding': '5px'
-        }).hide_index()
+        # Limit the dataframe to a manageable size for the PDF
+        if len(df) > 1000:
+            preview_df = df.head(1000)
+            truncated_message = "<p><strong>Note:</strong> This PDF shows only the first 1000 rows of the data.</p>"
+        else:
+            preview_df = df
+            truncated_message = ""
         
-        # Convert to PDF using df.to_html() and save
+        # Handle very wide dataframes by only showing the first 20 columns
+        max_cols = 20
+        if len(preview_df.columns) > max_cols:
+            preview_df = preview_df.iloc[:, :max_cols]
+            cols_message = f"<p><strong>Note:</strong> Only the first {max_cols} columns are shown in this PDF.</p>"
+            truncated_message += cols_message
+        
+        # Create a styled HTML table with better formatting
+        styles = [
+            dict(selector="th", props=[("font-weight", "bold"),
+                                     ("background-color", "#f2f2f2"),
+                                     ("border", "1px solid black"),
+                                     ("padding", "5px"),
+                                     ("text-align", "center")]),
+            dict(selector="td", props=[("border", "1px solid black"),
+                                     ("padding", "5px"),
+                                     ("max-width", "200px"),
+                                     ("overflow", "hidden"),
+                                     ("text-overflow", "ellipsis"),
+                                     ("white-space", "nowrap")]),
+            dict(selector="table", props=[("border-collapse", "collapse"),
+                                        ("width", "100%"),
+                                        ("font-size", "10pt")])
+        ]
+        
+        # Handle potential styling issues with large datasets
+        try:
+            # Try with full styling
+            styled_df = preview_df.style.set_table_styles(styles).hide_index()
+            html_table = styled_df.to_html()
+        except:
+            # Fallback to basic styling if the dataframe is too large
+            html_table = preview_df.to_html(index=False, border=1, classes="dataframe")
+        
+        # Build complete HTML with CSS for better printing
         html = f"""
+        <!DOCTYPE html>
         <html>
             <head>
+                <meta charset="UTF-8">
+                <title>Combined CSV Data</title>
                 <style>
-                    table {{ border-collapse: collapse; width: 100%; }}
-                    th, td {{ border: 1px solid black; padding: 5px; text-align: left; }}
-                    th {{ background-color: #f2f2f2; }}
+                    @page {{
+                        size: landscape;
+                        margin: 0.5cm;
+                    }}
+                    body {{
+                        font-family: Arial, sans-serif;
+                        font-size: 10pt;
+                    }}
+                    table {{
+                        border-collapse: collapse;
+                        width: 100%;
+                        page-break-inside: auto;
+                    }}
+                    tr {{
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }}
+                    th, td {{
+                        border: 1px solid black;
+                        padding: 5px;
+                        text-align: left;
+                        max-width: 200px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }}
+                    th {{
+                        background-color: #f2f2f2;
+                        font-weight: bold;
+                        text-align: center;
+                    }}
+                    h1 {{
+                        text-align: center;
+                        font-size: 14pt;
+                    }}
+                    .metadata {{
+                        margin-bottom: 15px;
+                        font-size: 9pt;
+                    }}
                 </style>
             </head>
             <body>
-                {styled_df.to_html()}
+                <h1>Combined CSV Data</h1>
+                <div class="metadata">
+                    <p><strong>Total Rows:</strong> {len(df)}</p>
+                    <p><strong>Total Columns:</strong> {len(df.columns)}</p>
+                    <p><strong>Generated:</strong> {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                </div>
+                {truncated_message}
+                {html_table}
             </body>
         </html>
         """
         
+        # Configure pdfkit options for better rendering
+        options = {
+            'page-size': 'A4',
+            'orientation': 'Landscape',
+            'margin-top': '0.5cm',
+            'margin-right': '0.5cm',
+            'margin-bottom': '0.5cm',
+            'margin-left': '0.5cm',
+            'encoding': 'UTF-8',
+            'no-outline': None,
+            'zoom': 0.8
+        }
+        
         # Save as PDF using pdfkit
-        pdfkit.from_string(html, pdf_path)
+        pdfkit.from_string(html, pdf_path, options=options)
         
         return pdf_path
         
     except Exception as e:
         raise Exception(f"Error converting to PDF: {str(e)}")
 
+def process_join_files(files: List, upload_folder: str) -> dict:
+    """
+    Simple function to join CSV files by appending rows.
+    With NaN handling for JSON serialization.
+    
+    Args:
+        files: List of file objects from the request
+        upload_folder: Path to the upload folder
+    
+    Returns:
+        dict: Response containing success status, preview data, and filename
+    """
+    import datetime
+    import pandas as pd
+    import numpy as np
+    import json
+    
+    try:
+        # Create empty DataFrame to hold all data
+        combined_df = None
+        processed_files = []
+        
+        # Process each file
+        for file in files:
+            if not file.filename:
+                continue
+                
+            # Save file temporarily
+            temp_path = os.path.join(upload_folder, secure_filename(file.filename))
+            file.save(temp_path)
+            
+            # Read CSV file
+            try:
+                df = pd.read_csv(temp_path)
+                processed_files.append(file.filename)
+                print(f"Successfully read {file.filename} with {len(df)} rows and {len(df.columns)} columns")
+                
+                # If this is the first file, use it as the base
+                if combined_df is None:
+                    combined_df = df
+                else:
+                    # Append this file's rows to the combined DataFrame
+                    combined_df = pd.concat([combined_df, df], ignore_index=True)
+                    print(f"Combined DataFrame now has {len(combined_df)} rows")
+            except Exception as e:
+                print(f"Error reading {file.filename}: {str(e)}")
+            
+            # Clean up temporary file
+            os.remove(temp_path)
+        
+        # Check if we successfully processed any files
+        if combined_df is None or combined_df.empty:
+            return {
+                'success': False,
+                'error': 'Could not process any of the uploaded files'
+            }
+        
+        # Generate output filename with timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f'combined_{timestamp}.csv'
+        output_path = os.path.join(upload_folder, output_filename)
+        
+        # Save combined data to CSV
+        combined_df.to_csv(output_path, index=False)
+        print(f"Saved combined file with {len(combined_df)} rows to {output_filename}")
+        
+        # Custom JSON encoder to handle NaN values
+        class NpEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.integer):
+                    return int(obj)
+                if isinstance(obj, np.floating):
+                    return None if np.isnan(obj) else float(obj)
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                if pd.isna(obj):
+                    return None
+                return super(NpEncoder, self).default(obj)
+        
+        # Convert preview to dictionary with NaN handling
+        preview_df = combined_df.head(10).copy()
+        
+        # Replace NaN with None
+        preview_df = preview_df.replace({np.nan: None})
+        preview_dict = preview_df.to_dict('records')
+        
+        # Return the result
+        result = {
+            'success': True,
+            'filename': output_filename,
+            'total_rows': len(combined_df),
+            'columns': combined_df.columns.tolist(),
+            'preview': preview_dict,
+            'processed_files': processed_files
+        }
+        
+        # Serialize to JSON and back to ensure no NaN values remain
+        json_result = json.dumps(result, cls=NpEncoder)
+        return json.loads(json_result)
+    
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return {
+            'success': False,
+            'error': f'Error joining files: {str(e)}'
+        }
+
 @app.route('/process-join', methods=['POST'])
 def process_join():
-    if 'files[]' not in request.files:
-        return jsonify({'success': False, 'error': 'No files provided'})
-    
-    files = request.files.getlist('files[]')
-    result = process_join_files(files, app.config['UPLOAD_FOLDER'])
-    
-    if result['success']:
-        # Convert to PDF
-        try:
-            csv_path = os.path.join(app.config['UPLOAD_FOLDER'], result['filename'])
-            pdf_path = save_as_pdf(csv_path)
-            result['pdf_filename'] = os.path.basename(pdf_path)
-        except Exception as e:
-            # If PDF conversion fails, we still return the CSV result
-            result['pdf_error'] = str(e)
-    
-    return jsonify(result)
+    """
+    Process the uploaded files for joining.
+    With NaN handling for proper JSON serialization.
+    """
+    try:
+        if 'files[]' not in request.files:
+            return jsonify({
+                'success': False, 
+                'error': 'No files provided in the request'
+            })
+        
+        files = request.files.getlist('files[]')
+        
+        # Check if we received any files
+        if not files or all(not f.filename for f in files):
+            return jsonify({
+                'success': False, 
+                'error': 'No files were selected for upload'
+            })
+        
+        # Log incoming files for debugging
+        print(f"Received {len(files)} files for joining:")
+        for file in files:
+            if file.filename:
+                print(f"  - {file.filename}")
+        
+        # Process the files
+        result = process_join_files(files, app.config['UPLOAD_FOLDER'])
+        
+        # Ensure all values in the result are JSON-serializable (no NaN values)
+        import numpy as np
+        import pandas as pd
+        import json
+        
+        # Custom JSON encoder to handle NaN values
+        class NpEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.integer):
+                    return int(obj)
+                if isinstance(obj, np.floating):
+                    return None if np.isnan(obj) else float(obj)
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                if pd.isna(obj):
+                    return None
+                return super(NpEncoder, self).default(obj)
+        
+        # Convert the result to JSON with special handling for NaN
+        json_result = json.dumps(result, cls=NpEncoder)
+        
+        # Return the processed result
+        return app.response_class(
+            response=json_result,
+            status=200,
+            mimetype='application/json'
+        )
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Exception in process_join: {str(e)}")
+        print(error_trace)
+        
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}'
+        })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True, use_reloader=False)
