@@ -466,6 +466,33 @@ def process_join():
             'success': False,
             'error': f'Server error: {str(e)}'
         })
+    
+@app.route('/get-calculation-options', methods=['POST'])
+def get_calculation_options():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file part'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No selected file'})
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        try:
+            # You might want to do some validation on the file here
+            # For now, just return success with the filename
+            return jsonify({
+                'success': True,
+                'filename': filename,
+                'message': 'File uploaded successfully'
+            })
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+
+    return jsonify({'success': False, 'error': 'Invalid file type'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True, use_reloader=False)

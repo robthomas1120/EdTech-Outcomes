@@ -32,13 +32,19 @@ async function handleFileUpload(event) {
     }
     
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file); // Make sure this matches the key your server expects
     
     try {
+        // Check if this route exists in your Flask app
         const response = await fetch('/get-calculation-options', {
             method: 'POST',
             body: formData
         });
+        
+        // Check if the response was ok before parsing
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
         
         const data = await response.json();
         
@@ -47,9 +53,10 @@ async function handleFileUpload(event) {
             document.getElementById('calculationOptions').classList.remove('hidden');
             showStatus('File uploaded successfully');
         } else {
-            showStatus(data.error, true);
+            showStatus(data.error || 'Unknown error occurred', true);
         }
     } catch (error) {
+        console.error('Upload error:', error);
         showStatus('Error uploading file: ' + error.message, true);
     }
 }
