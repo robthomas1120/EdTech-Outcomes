@@ -4,51 +4,155 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapping Page</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='mapping.css') }}">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="d-flex justify-content-center gap-3">
-        <a href="{{ url_for('index') }}" class="btn btn-primary">Preprocessing</a>
-        <a href="{{ url_for('join') }}" class="btn btn-info">Join Files</a>
-        <a href="{{ url_for('mapping.mapping_page') }}" class="btn btn-warning">Mapping</a>
-        <a href="{{ url_for('calculation') }}" class="btn btn-success">Calculation</a>
-    </div>
+    <header class="app-header">
+        <div class="nav-container">
+            <div class="nav-tabs">
+                <a href="{{ url_for('index') }}" class="nav-tab preprocessing">
+                    <i class="fas fa-cogs me-2"></i>Preprocessing
+                </a>
+                <a href="{{ url_for('join') }}" class="nav-tab join">
+                    <i class="fas fa-link me-2"></i>Join Files
+                </a>
+                <a href="{{ url_for('mapping.mapping_page') }}" class="nav-tab mapping">
+                    <i class="fas fa-map me-2"></i>Mapping
+                </a>
+                <a href="{{ url_for('calculation') }}" class="nav-tab calculation">
+                    <i class="fas fa-calculator me-2"></i>Calculation
+                </a>
+            </div>
+        </div>
+    </header>
 
     <div class="container">
-        <h2>Mapping Page</h2>
-        
-        <!-- Step 1: Upload Mapping Template -->
-        <div id="step1">
-            <h3>Step 1: Upload Mapping Template</h3>
-            <form id="upload-form">
-                <input type="file" id="file-input" accept=".csv,.xlsx">
-            </form>
-        </div>
+        <div class="main-content">
+            <h2 class="page-title">Data Mapping</h2>
+            
+            <!-- Step 1: Upload Mapping Template -->
+            <div id="step1" class="mb-4">
+                <h3 class="section-title">
+                    <i class="fas fa-upload me-2"></i>Step 1: Upload Mapping Template
+                </h3>
+                <form id="upload-form">
+                    <div class="upload-area" id="templateDropZone">
+                        <div class="upload-icon">
+                            <i class="fas fa-file-import"></i>
+                        </div>
+                        <p>Drag and drop your mapping template here or click to select</p>
+                        <p class="small text-muted">Supported formats: CSV, XLSX</p>
+                        <input type="file" id="file-input" accept=".csv,.xlsx" class="hidden">
+                    </div>
+                </form>
+            </div>
 
-        <!-- Step 2: Radio Options -->
-        <div id="radio-options" style="display: none;">
-            <h3>Step 2: Select Mapping Type</h3>
-            <!-- Radio buttons will be dynamically added here -->
-        </div>
+            <!-- Step 2: Radio Options -->
+            <div id="radio-options" class="mb-4 hidden">
+                <h3 class="section-title">
+                    <i class="fas fa-list-alt me-2"></i>Step 2: Select Mapping Type
+                </h3>
+                <div class="radio-options-container">
+                    <!-- Radio buttons will be dynamically added here -->
+                </div>
+            </div>
 
-        <!-- Step 3: Upload Outcomes Results -->
-        <div id="step3" style="display: none;">
-            <h3>Step 3: Upload Outcomes Results</h3>
-            <input type="file" id="outcomes-file-input" accept=".csv,.xlsx">
-        </div>
+            <!-- Step 3: Upload Outcomes Results -->
+            <div id="step3" class="mb-4 hidden">
+                <h3 class="section-title">
+                    <i class="fas fa-file-upload me-2"></i>Step 3: Upload Outcomes Results
+                </h3>
+                <div class="upload-area" id="outcomesDropZone">
+                    <div class="upload-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <p>Drag and drop your outcomes file here or click to select</p>
+                    <p class="small text-muted">Supported formats: CSV, XLSX</p>
+                    <input type="file" id="outcomes-file-input" accept=".csv,.xlsx" class="hidden">
+                </div>
+            </div>
 
-        <!-- Loading Spinner -->
-        <div id="loading-spinner" style="display: none;">
-            Loading...
-        </div>
+            <!-- Loading Spinner -->
+            <div id="loading-spinner" class="loading-container hidden">
+                <div class="spinner">
+                    <i class="fas fa-circle-notch fa-spin"></i>
+                </div>
+                <p>Processing your data...</p>
+            </div>
 
-        <!-- Results Container -->
-        <div id="mapping-results"></div>
-        
-        <!-- Download Button -->
-        <button id="download-button" style="display: none;">Download Mapped Results</button>
+            <!-- Results Container -->
+            <div id="mapping-results" class="results-container mb-4"></div>
+            
+            <!-- Download Button -->
+            <div class="nav-buttons">
+                <div></div> <!-- Empty div for flex spacing -->
+                <button id="download-button" class="btn btn-success hidden">
+                    <i class="fas fa-download me-2"></i>Download Mapped Results
+                </button>
+            </div>
+        </div>
     </div>
 
+    <script>
+        // Initialize drag and drop for the template upload area
+        const templateDropZone = document.getElementById('templateDropZone');
+        const fileInput = document.getElementById('file-input');
+        
+        initializeDragAndDrop(templateDropZone, fileInput);
+        
+        // Initialize drag and drop for the outcomes upload area
+        const outcomesDropZone = document.getElementById('outcomesDropZone');
+        const outcomesFileInput = document.getElementById('outcomes-file-input');
+        
+        initializeDragAndDrop(outcomesDropZone, outcomesFileInput);
+        
+        // Function to initialize drag and drop functionality
+        function initializeDragAndDrop(dropZone, fileInput) {
+            // Open file dialog when clicking on the drop zone
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Display file name when a file is selected
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    const fileName = fileInput.files[0].name;
+                    dropZone.querySelector('p').textContent = `Selected: ${fileName}`;
+                    dropZone.style.borderColor = 'var(--success-color)';
+                }
+            });
+            
+            // Handle drag and drop events
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--primary-color)';
+                dropZone.style.backgroundColor = 'rgba(67, 97, 238, 0.05)';
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = 'var(--medium-gray)';
+                dropZone.style.backgroundColor = 'var(--secondary-color)';
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--success-color)';
+                dropZone.style.backgroundColor = 'var(--secondary-color)';
+                
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    const fileName = fileInput.files[0].name;
+                    dropZone.querySelector('p').textContent = `Selected: ${fileName}`;
+                    
+                    // Trigger change event
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                }
+            });
+        }
+    </script>
     <script src="{{ url_for('static', filename='mapping.js') }}"></script>
 </body>
 </html>
